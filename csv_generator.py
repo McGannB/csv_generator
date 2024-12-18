@@ -1,44 +1,82 @@
 import random
-import csv
-from datetime import datetime, timedelta
+import string
+import pandas as pd
+import datetime
 
-#Function to generate random dates
-def generate_random_date(start_date, end_date):
-    delta = end_date - start_date
-    random_days = random.randint(0, delta.days)
-    return start_date + timedelta(days=random_days)
+def generate_random_data(data_type, num_samples, min_value=None, max_value=None, 
+                        length=None, charset=None):
+  """
+  Generates random data of the specified type.
 
-#Function to generate a random sales data CSV
-def generate_random_csv(file_name, num_rows):
-    #Define sample data for randomization
-    products = ["Laptop", "Smartphone", "Tablet", "Monitor", "Keyboard", "Mouse"]
-    categories = ["Electronics", "Accessories", "Mobile"]
-    regions = ["North", "South", "East", "West"]
+  Args:
+    data_type: The type of data to generate. 
+              Supported types: 'int', 'float', 'string', 'bool', 'date'
+    num_samples: The number of samples to generate.
+    min_value: The minimum value for numerical data.
+    max_value: The maximum value for numerical data.
+    length: The length of the string to generate.
+    charset: The characters to use for string generation. 
 
-    #Define date range
-    start_date = datetime(2022, 1, 1)
-    end_date = datetime(2024, 12, 31)
+  Returns:
+    A list containing the generated random data.
+  """
 
-    #Open the CSV file for writing
-    with open(file_name, mode='w', newline='') as file:
-        writer = csv.writer(file)
+  data = []
+  for _ in range(num_samples):
+    if data_type == 'int':
+      data.append(random.randint(min_value, max_value))
+    elif data_type == 'float':
+      data.append(random.uniform(min_value, max_value))
+    elif data_type == 'string':
+      if charset is None:
+        charset = string.ascii_letters + string.digits
+      data.append(''.join(random.choice(charset) for _ in range(length)))
+    elif data_type == 'bool':
+      data.append(random.choice([True, False]))
+    elif data_type == 'date':
+      start_date = datetime.date(2000, 1, 1)
+      end_date = datetime.date(2024, 12, 31)  # Adjust as needed
+      time_between_dates = end_date - start_date
+      days_between_dates = time_between_dates.days
+      random_number_of_days = random.randrange(days_between_dates)
+      random_date = start_date + datetime.timedelta(days=random_number_of_days)
+      data.append(random_date)
+    else:
+      raise ValueError(f"Unsupported data type: {data_type}")
 
-        #Write header row
-        writer.writerow(["Date", "Product", "Category", "Region", "Sales"])
+  return data
 
-        #Generate and write random rows
-        for _ in range(num_rows):
-            date = generate_random_date(start_date, end_date).strftime("%Y-%m-%d")
-            product = random.choice(products)
-            category = random.choice(categories)
-            region = random.choice(regions)
-            sales = round(random.uniform(10.0, 1000.0), 2) #Random sales amount
+def generate_random_dataframe(columns, num_rows, **kwargs):
+  """
+  Generates a pandas DataFrame with random data.
 
-            writer.writerow([date, product, category, region, sales])
+  Args:
+    columns: A list of dictionaries, where each dictionary represents a column:
+             - 'name': The name of the column.
+             - 'type': The data type of the column ('int', 'float', 'string', 'bool', 'date').
+             - Additional arguments for the `generate_random_data` function.
+    num_rows: The number of rows in the DataFrame.
 
-    print(f"Random CSV file '{file_name}' with {num_rows} rows generated successfully.")
+  Returns:
+    A pandas DataFrame with the generated random data.
+  """
 
-#Example usage
-file_name = "sales_data.csv"
-num_rows = 500 #Number of rows to generate
-generate_random_csv(file_name, num_rows)
+  data = {}
+  for col in columns:
+    data[col['name']] = generate_random_data(**col)
+
+  return pd.DataFrame(data)
+
+# Example usage:
+columns = [
+    {'name': 'id', 'type': 'int', 'min_value': 1, 'max_value': 1000},
+    {'name': 'name', 'type': 'string', 'length': 10},
+    {'name': 'age', 'type': 'int', 'min_value': 18, 'max_value': 65},
+    {'name': 'salary', 'type': 'float', 'min_value': 30000, 'max_value': 150000},
+    {'name': 'active', 'type': 'bool'}
+]
+
+df = generate_random_dataframe(columns, num_rows=100)
+
+# Export to CSV
+df.to_csv('random_data.csv', index=False) 
